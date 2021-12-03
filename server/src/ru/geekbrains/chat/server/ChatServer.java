@@ -19,7 +19,7 @@ public class ChatServer implements TcpConnectionListener {
                 try {
                     new TcpConnection(this, serverSocket.accept());
                 } catch (IOException e) {
-                    System.out.println("TCP Connection exception: " + e.getMessage());
+                    System.out.println("TCP Connection exception: " + e);
                 }
             }
         } catch (IOException e) {
@@ -32,18 +32,29 @@ public class ChatServer implements TcpConnectionListener {
     }
 
     @Override
-    public void onConnectionReady(TcpConnection tcpConnection) {
+    public synchronized void onConnectionReady(TcpConnection tcpConnection) {
+        connections.add(tcpConnection);
+        sendToAllConnections("Client connected: " + tcpConnection);
     }
 
     @Override
-    public void onReceiveString(TcpConnection tcpConnection, String value) {
+    public synchronized void onReceiveString(TcpConnection tcpConnection, String value) {
+        sendToAllConnections(value);
     }
 
     @Override
-    public void onDisconnect(TcpConnection tcpConnection) {
+    public synchronized void onDisconnect(TcpConnection tcpConnection) {
+        connections.remove(tcpConnection);
+        sendToAllConnections("Client disconnected: " + tcpConnection);
     }
 
     @Override
-    public void onException(TcpConnection tcpConnection, Exception e) {
+    public synchronized void onException(TcpConnection tcpConnection, Exception e) {
+        System.out.println("TCP Connection exception: " + e);
+    }
+
+    private void sendToAllConnections(String value) {
+        System.out.println(value);
+        connections.forEach(c -> c.sendString(value));
     }
 }
